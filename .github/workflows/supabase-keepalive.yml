@@ -1,4 +1,4 @@
-naname: Supabase Keep Alive
+name: Supabase Keep Alive
 
 on:
   schedule:
