@@ -1,8 +1,7 @@
-name: Supabase Keep Alive
+naname: Supabase Keep Alive
 
 on:
   schedule:
-    # Läuft jeden Montag und Donnerstag um 08:00 UTC
     - cron: "0 8 * * 1,4"
   workflow_dispatch:
 
@@ -10,8 +9,11 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Ping Supabase heartbeat table
+      - name: Update Supabase heartbeat
         run: |
-          curl -X GET "${{ secrets.SUPABASE_URL }}/rest/v1/heartbeat?select=id&limit=1" \
+          curl -X PATCH "${{ secrets.SUPABASE_URL }}/rest/v1/heartbeat?id=eq.1" \
           -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}"
+          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+          -H "Content-Type: application/json" \
+          -H "Prefer: return=minimal" \
+          -d "{\"created_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
