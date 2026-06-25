@@ -11,12 +11,22 @@ jobs:
     steps:
       - name: Insert keepalive row into Supabase
         run: |
+          BASE_URL="${{ secrets.SUPABASE_URL }}"
+          BASE_URL="${BASE_URL%/}"
+          BASE_URL="${BASE_URL%/rest/v1}"
+
           NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           ID=$(date +%s)
 
-          curl --fail-with-body -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/keepalive_log" \
+          echo "Sending keepalive insert..."
+
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$BASE_URL/rest/v1/keepalive_log" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
             -H "Prefer: return=representation" \
-            -d "{\"id\":$ID,\"created_at\":\"$NOW\"}"
+            -d "{\"id\":$ID,\"created_at\":\"$NOW\"}")
+
+          echo "$RESPONSE"
+
+          echo "$RESPONSE" | grep "HTTP_STATUS:201" > /dev/null || exit 1
