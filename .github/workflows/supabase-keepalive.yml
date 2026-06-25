@@ -9,17 +9,14 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Insert keepalive row into Supabase and verify
+      - name: Insert keepalive row into Supabase
         run: |
-          echo "Insert keepalive row..."
-          RESPONSE=$(curl -s -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/keepalive_log" \
+          NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          ID=$(date +%s)
+
+          curl --fail-with-body -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/keepalive_log" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
             -H "Content-Type: application/json" \
             -H "Prefer: return=representation" \
-            -d '[{}]')
-
-          echo "Supabase response:"
-          echo "$RESPONSE"
-
-          echo "$RESPONSE" | grep "created_at" > /dev/null || (echo "Insert failed" && exit 1)
+            -d "{\"id\":$ID,\"created_at\":\"$NOW\"}"
