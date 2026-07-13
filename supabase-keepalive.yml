@@ -2,18 +2,39 @@ name: Supabase Keep Alive
 
 on:
   schedule:
-    - cron: "0 8 * * 1,4"
+    - cron: "15 5,12,19 * * *"
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - name: Update Supabase heartbeat
+      - name: Create Supabase database activity
         run: |
-          curl -X PATCH "${{ secrets.SUPABASE_URL }}/rest/v1/heartbeat?id=eq.1" \
-          -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-          -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
-          -H "Content-Type: application/json" \
-          -H "Prefer: return=minimal" \
-          -d "{\"created_at\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+          BASE_URL="${{ secrets.SUPABASE_URL }}"
+          BASE_URL="${BASE_URL%/}"
+          BASE_URL="${BASE_URL%/rest/v1}"
+          ANON_KEY="${{ secrets.SUPABASE_ANON_KEY }}"
+
+          for i in 1 2 3
+          do
+            NOW=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+            ID=$(date +%s%N)
+
+            RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" \
+              -X POST "$BASE_URL/rest/v1/keepalive_log" \
+              -H "apikey: $ANON_KEY" \
+              -H "Authorization: Bearer $ANON_KEY" \
+              -H "Content-Type: application/json" \
+              -H "Prefer: return=representation" \
+              -d "{\"id\":$ID,\"created_at\":\"$NOW\"}")
+
+            echo "$RESPONSE"
+            echo "$RESPONSE" | grep "HTTP_STATUS:201" > /dev/null || exit 1
+
+            curl -s "$BASE_URL/rest/v1/keepalive_log?select=id,created_at&order=created_at.desc&limit=1" \
+              -H "apikey: $ANON_KEY" \
+              -H "Authorization: Bearer $ANON_KEY" > /dev/null
+
+            sleep 5
+          done
