@@ -2,13 +2,29 @@ name: Supabase Keep Alive
 
 on:
   schedule:
+    # Supabase dreimal täglich aktiv halten
     - cron: "15 5,12,19 * * *"
+
+    # GitHub-Repository einmal pro Woche aktiv halten
+    # Sonntag um 08:00 UTC
+    - cron: "0 8 * * 0"
+
+  # Manueller Test
   workflow_dispatch:
+
+permissions:
+  contents: write
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
       - name: Create Supabase database activity
         run: |
           BASE_URL="${{ secrets.SUPABASE_URL }}"
@@ -38,3 +54,15 @@ jobs:
 
             sleep 5
           done
+
+      - name: Keep GitHub repository active
+        if: github.event_name == 'workflow_dispatch' || github.event.schedule == '0 8 * * 0'
+        run: |
+          date -u +"Last automatic GitHub activity: %Y-%m-%d %H:%M:%S UTC" > github-keepalive.txt
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add github-keepalive.txt
+          git commit -m "Weekly repository keepalive"
+          git push origin HEAD:main
